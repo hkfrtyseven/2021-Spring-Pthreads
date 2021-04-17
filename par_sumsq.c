@@ -26,6 +26,16 @@ volatile long max = INT_MIN;
 volatile bool done = false;
 volatile long num_Proc = 0;
 
+// Global List
+typedef struct node {
+  char process;
+  long timeCost;
+
+  struct node* next;
+} node_Link;
+
+node_Link* head = NULL;
+
 // Mutex
 pthread_mutex_t listMutex;
 pthread_cond_t listCond;
@@ -99,6 +109,7 @@ void* startProc(void* args) {
   }
 }
 
+/*
   // Linked list implementation for wait/process
 typedef struct node {
 
@@ -112,9 +123,14 @@ typedef struct node {
 node_Link* head = NULL;
 head = (node_Link*) malloc(sizeof(node_Link);
 head->next = NULL;
+*/
 
 int main(int argc, char* argv[])
 {
+  // Complete head of linked list
+  head = (node_Link*) malloc(sizeof(node_Link));
+  head->next = NULL;
+
   // Mutex/conditional initialization
   pthread_mutex_init(&listMutex, NULL);
   pthread_cond_init(&listCond, NULL);
