@@ -17,13 +17,13 @@
 #include <pthread.h>	//  First step, include pthread library
 
 // aggregate variables	//  This is the data the pthreads will change
-long sum = 0;
-long odd = 0;
-long min = INT_MAX;
-long max = INT_MIN;
-bool done = false;
+volatile long sum = 0;
+volatile long odd = 0;
+volatile long min = INT_MAX;
+volatile long max = INT_MIN;
+volatile bool done = false;
 
-// function prototypes	//  This is the function that the pthreads will execute
+// function prototype
 void calculate_square(long number);
 
 /*
@@ -72,8 +72,11 @@ typedef struct node {
 
 int main(int argc, char* argv[])
 {
-  // # of thread var
-  int thread_count = 0;
+  // # of threads
+  long thread_count = 0;
+
+  // # of processes
+  long num_Proc = 0;
 
   // Initialize Linked List
   node_Link* head = NULL;
@@ -81,14 +84,18 @@ int main(int argc, char* argv[])
   head->next = NULL;
 
   // check and parse command line options
-  if (argc != 2) {
-    printf("Usage: sumsq <infile>\n");
+  if (argc != 3) {
+    printf("Incorrect Usage: par_sumsq <infile>\n");
     exit(EXIT_FAILURE);
   }
   char *fn = argv[1];
 
   // Read number of worker threads
   thread_count = strtol(argv[2], NULL, 10);
+  if (thread_count <= 0) {
+    printf("Invalid thread count entered.");
+    exit(EXIT_FAILURE);
+  }
 
   // load numbers and add them to the queue
   FILE* fin = fopen(fn, "r");
@@ -104,6 +111,7 @@ int main(int argc, char* argv[])
 
     current->next = (node_Link*) malloc(sizeof(node_Link));
     current = current->next;
+    num_Proc++;
 
     /*
      * sumsq version
@@ -119,10 +127,10 @@ int main(int argc, char* argv[])
     */
   }
   fclose(fin);
-  
+
   // print results
   printf("%ld %ld %ld %ld\n", sum, odd, min, max);
-  
+
   // clean up and return
   return (EXIT_SUCCESS);
 }
