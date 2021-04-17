@@ -7,6 +7,7 @@
  *
  * Version 1.0	//  First Attempt a Pthread programming
  * 		//  Linked List code taken fromi learn-c.org
+ *		//  Need to init pthreads -> workerfunction(calculate_square)
  */
 
 #include <limits.h>
@@ -22,6 +23,10 @@ volatile long odd = 0;
 volatile long min = INT_MAX;
 volatile long max = INT_MIN;
 volatile bool done = false;
+
+// Mutex
+pthread_mutex_t listMutex;
+pthread_cond_t listCond;
 
 // function prototype
 void calculate_square(long number);
@@ -72,6 +77,10 @@ typedef struct node {
 
 int main(int argc, char* argv[])
 {
+  // Mutex/conditional initialization
+  pthread_mutex_init(&listMutex, NULL);
+  pthread_cond_init(&listCond, NULL);
+
   // # of threads
   long thread_count = 0;
 
@@ -97,6 +106,13 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
+  // Initialize pthreads
+  pthread_t workers[thread_count];
+  long i;
+  for (i = 0; i < thread_count; i++) {
+    pthread_create(&workers[i], NULL, FUNCTION, NULL);	//  NEED A PTHREAD FUNCTION
+  }
+
   // load numbers and add them to the queue
   FILE* fin = fopen(fn, "r");
   char action;
@@ -104,29 +120,25 @@ int main(int argc, char* argv[])
 
   node_Link* current = NULL;
   current = head;
+
   while (fscanf(fin, "%c %ld\n", &action, &num) == 2) {
     // Read values from file into linked list
-    current->process = action;
-    current->timeCost = num;
-
-    current->next = (node_Link*) malloc(sizeof(node_Link));
-    current = current->next;
-    num_Proc++;
-
-    /*
-     * sumsq version
-     *
-    if (action == 'p') {            // process, do some work
-      calculate_square(num);
+    if (action == 'p') {            // process, add to task list
+      current.process = action;
+      current.timeCost = num;
+      current->nex t = (node_Link*) malloc(sizeof(node_Link));
+      current = current->next;
     } else if (action == 'w') {     // wait, nothing new happening
       sleep(num);
     } else {
       printf("ERROR: Unrecognized action: '%c'\n", action);
       exit(EXIT_FAILURE);
     }
-    */
   }
+
   fclose(fin);
+
+
 
   // print results
   printf("%ld %ld %ld %ld\n", sum, odd, min, max);
