@@ -8,6 +8,7 @@
  * Version 1.0	//  First Attempt a Pthread programming
  * 		//  Linked List code taken fromi learn-c.org
  *		//  Need to init pthreads -> workerfunction(calculate_square)
+ *	   	//  Errors, but have a pthread function
  */
 
 #include <limits.h>
@@ -23,6 +24,7 @@ volatile long odd = 0;
 volatile long min = INT_MAX;
 volatile long max = INT_MIN;
 volatile bool done = false;
+volatile long num_Proc = 0;
 
 // Mutex
 pthread_mutex_t listMutex;
@@ -65,6 +67,38 @@ void calculate_square(long number)
   }
 }
 
+/*
+ * Function to run in pthread
+ */
+void* startProc(void* args) {
+  node_Link* next_Node = NULL;
+  long val = 0;
+
+  // pthreads are either working or not
+  while (1) {
+
+      // Lock mutex for pthread processessing
+      pthread_mutex_lock(&listMutex);
+      while (num_Proc == 0) {
+        pthread_cond_wait(&listCond, &listMutex);
+      }
+
+      if (head == NULL) {
+        pthread_exit(0);
+      }
+
+      next_Node = head->next;
+      val = head->timeCost;
+      free(head);
+      head = next_Node;
+
+      // unlock mutex
+      pthread_mutex_unlock(&listMutex);
+
+      calculate_square(val);
+  }
+}
+
   // Linked list implementation for wait/process
 typedef struct node {
 
@@ -74,6 +108,10 @@ typedef struct node {
   struct node* next;
 } node_Link;
 
+  // Global linked_list
+node_Link* head = NULL;
+head = (node_Link*) malloc(sizeof(node_Link);
+head->next = NULL;
 
 int main(int argc, char* argv[])
 {
@@ -83,14 +121,6 @@ int main(int argc, char* argv[])
 
   // # of threads
   long thread_count = 0;
-
-  // # of processes
-  long num_Proc = 0;
-
-  // Initialize Linked List
-  node_Link* head = NULL;
-  head = (node_Link*) malloc(sizeof(node_Link));
-  head->next = NULL;
 
   // check and parse command line options
   if (argc != 3) {
@@ -110,7 +140,7 @@ int main(int argc, char* argv[])
   pthread_t workers[thread_count];
   long i;
   for (i = 0; i < thread_count; i++) {
-    pthread_create(&workers[i], NULL, FUNCTION, NULL);	//  NEED A PTHREAD FUNCTION
+    pthread_create(&workers[i], NULL, &startProc, NULL);	//  startProc = pthread function
   }
 
   // load numbers and add them to the queue
@@ -124,10 +154,21 @@ int main(int argc, char* argv[])
   while (fscanf(fin, "%c %ld\n", &action, &num) == 2) {
     // Read values from file into linked list
     if (action == 'p') {            // process, add to task list
-      current.process = action;
-      current.timeCost = num;
-      current->nex t = (node_Link*) malloc(sizeof(node_Link));
+      // Lock queue additions
+      pthread_mutex_lock(&listMutex);
+
+      current->process = action;
+      current->timeCost = num;
+      current->next = (node_Link*) malloc(sizeof(node_Link));
       current = current->next;
+      num_Proc++;
+
+      // Unlock mutex
+      pthread_mutex_unlock(&listMutex);
+
+      // Conditional variable signal to return mutex/predicate
+      pthread_cond_signal(&listCond);
+
     } else if (action == 'w') {     // wait, nothing new happening
       sleep(num);
     } else {
@@ -138,12 +179,16 @@ int main(int argc, char* argv[])
 
   fclose(fin);
 
-
-
   // print results
   printf("%ld %ld %ld %ld\n", sum, odd, min, max);
 
   // clean up and return
+  for (i = 0; i < thread_count; i++) {
+    pthread_join(workers[i], NULL);
+  }
+  pthread_mutex_destroy(&listMutex);
+  pthread_cond_destroy(&listCond);
+
   return (EXIT_SUCCESS);
 }
 
