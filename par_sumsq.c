@@ -111,7 +111,7 @@ void* startProc(void* args) {
     head = next_Node;
     num_Proc--;
 
-    printf("TEST VAL = %ld \n", val);
+//    printf("TEST VAL = %ld \n", val);
 
     // unlock mutex
     pthread_mutex_unlock(&listMutex);
@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
   // Read number of worker threads
   thread_count = strtol(argv[2], NULL, 10);
   // TEST
-  printf("TEST THREADCOUNT = %ld \n", thread_count);
+//  printf("TEST THREADCOUNT = %ld \n", thread_count);
   if (thread_count <= 0) {
     printf("Invalid thread count entered.");
     exit(EXIT_FAILURE);
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 
       current->process = action;
       current->timeCost = num;
-      printf("TEST TIMECOST = %ld \n", num);
+//      printf("TEST TIMECOST = %ld \n", num);
       current->next = (node_Link*) malloc(sizeof(node_Link));
       current = current->next;
       num_Proc++;
