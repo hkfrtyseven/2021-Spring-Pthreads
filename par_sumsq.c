@@ -5,6 +5,8 @@
  *
  * Compile with --std=c99
  *
+ * By MATT FACQUE
+ *
  * Version 1.0	//  First Attempt a Pthread programming
  * 		//  Linked List code taken fromi learn-c.org
  *		//  Need to init pthreads -> workerfunction(calculate_square)
@@ -19,12 +21,12 @@
 #include <pthread.h>	//  First step, include pthread library
 
 // aggregate variables	//  This is the data the pthreads will change
-volatile long sum = 0;
-volatile long odd = 0;
-volatile long min = INT_MAX;
-volatile long max = INT_MIN;
-volatile bool done = false;
-volatile long num_Proc = 0;
+long sum = 0;
+long odd = 0;
+long min = INT_MAX;
+long max = INT_MIN;
+bool done = false;
+long num_Proc = 0;
 
 // Global List
 typedef struct node {
@@ -49,6 +51,8 @@ void calculate_square(long number);
  */
 void calculate_square(long number)
 {
+  // lock the mutex
+  pthread_mutex_lock(&listMutex);
 
   // calculate the square
   long the_square = number * number;
@@ -75,6 +79,10 @@ void calculate_square(long number)
   if (number > max) {
     max = number;
   }
+
+  // unlock the mutex
+  pthread_mutex_unlock(&listMutex);
+
 }
 
 /*
@@ -86,26 +94,22 @@ void* startProc(void* args) {
 
   // pthreads are either working or not
   while (1) {
+      	// Lock mutex for pthread processessing
+   pthread_mutex_lock(&listMutex);
 
-      // Lock mutex for pthread processessing
-      pthread_mutex_lock(&listMutex);
-      while (num_Proc == 0) {
-        pthread_cond_wait(&listCond, &listMutex);
-      }
+   while (num_Proc == 0) {
+     pthread_cond_wait(&listCond, &listMutex);
+   }
 
-      if (head == NULL) {
-        pthread_exit(0);
-      }
+   next_Node = head->next;
+   val = head->timeCost;
+   free(head);
+   head = next_Node;
 
-      next_Node = head->next;
-      val = head->timeCost;
-      free(head);
-      head = next_Node;
+   // unlock mutex
+   pthread_mutex_unlock(&listMutex);
 
-      // unlock mutex
-      pthread_mutex_unlock(&listMutex);
-
-      calculate_square(val);
+   calculate_square(val);
   }
 }
 
@@ -147,6 +151,8 @@ int main(int argc, char* argv[])
 
   // Read number of worker threads
   thread_count = strtol(argv[2], NULL, 10);
+  // TEST
+  printf("TEST THREADCOUNT = %ld \n", thread_count);
   if (thread_count <= 0) {
     printf("Invalid thread count entered.");
     exit(EXIT_FAILURE);
