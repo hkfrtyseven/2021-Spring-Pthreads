@@ -92,24 +92,31 @@ void* startProc(void* args) {
   node_Link* next_Node = NULL;
   long val = 0;
 
-  // pthreads are either working or not
-  while (1) {
-      	// Lock mutex for pthread processessing
-   pthread_mutex_lock(&listMutex);
+  while (!done) {
+    // Lock mutex for pthread processessing
+    pthread_mutex_lock(&listMutex);
 
-   while (num_Proc == 0) {
-     pthread_cond_wait(&listCond, &listMutex);
-   }
+    while (num_Proc == 0) {
+      pthread_cond_wait(&listCond, &listMutex);
+    }
 
-   next_Node = head->next;
-   val = head->timeCost;
-   free(head);
-   head = next_Node;
+    if (done) {
+      pthread_mutex_unlock(&listMutex);
+      break;
+    }
 
-   // unlock mutex
-   pthread_mutex_unlock(&listMutex);
+    next_Node = head->next;
+    val = head->timeCost;
+    free(head);
+    head = next_Node;
+    num_Proc--;
 
-   calculate_square(val);
+    printf("TEST VAL = %ld \n", val);
+
+    // unlock mutex
+    pthread_mutex_unlock(&listMutex);
+
+    calculate_square(val);
   }
 }
 
@@ -170,6 +177,7 @@ int main(int argc, char* argv[])
   char action;
   long num;
 
+  // traversal pointer to list
   node_Link* current = NULL;
   current = head;
 
@@ -181,15 +189,19 @@ int main(int argc, char* argv[])
 
       current->process = action;
       current->timeCost = num;
+      printf("TEST TIMECOST = %ld \n", num);
       current->next = (node_Link*) malloc(sizeof(node_Link));
       current = current->next;
       num_Proc++;
 
       // Unlock mutex
-      pthread_mutex_unlock(&listMutex);
+//      pthread_mutex_unlock(&listMutex);
 
       // Conditional variable signal to return mutex/predicate
       pthread_cond_signal(&listCond);
+
+      // Unlock mutex
+      pthread_mutex_unlock(&listMutex);
 
     } else if (action == 'w') {     // wait, nothing new happening
       sleep(num);
