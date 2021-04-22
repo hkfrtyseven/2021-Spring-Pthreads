@@ -11,6 +11,7 @@
  * 		//  Linked List code taken fromi learn-c.org
  *		//  Need to init pthreads -> workerfunction(calculate_square)
  *	   	//  Errors, but have a pthread function
+ * 	   2.0  //  Working Version!
  */
 
 #include <limits.h>
@@ -25,7 +26,7 @@ volatile long sum = 0;
 volatile long odd = 0;
 volatile long min = INT_MAX;
 volatile long max = INT_MIN;
-volatile bool done = false;
+volatile bool done = 0;
 volatile long num_Proc = 0;
 
 // Global List
@@ -44,7 +45,7 @@ pthread_cond_t listCond;
 
 // function prototype
 void calculate_square(long number);
-
+int startProc(void* args);
 /*
  * update global aggregate variables given a number
  * for use in pthreads
@@ -89,13 +90,13 @@ void calculate_square(long number)
 /*
  * Function to run in pthread
  */
-void* startProc(void* args) {
+int startProc(void* args) {
   node_Link* next_Node = NULL;
   long val = 0;
 
   printf("PTHREAD START \n");
 
-  while (!done) {
+  while (1) {
     // Lock mutex for pthread processessing
     pthread_mutex_lock(&listMutex);
 
@@ -106,17 +107,22 @@ void* startProc(void* args) {
 
     next_Node = head->next;
     val = head->timeCost;
-    free(head);
     head = next_Node;
     num_Proc--;
 
     printf("TEST VAL = %ld \n", val);
+
+    // TEST DONE
+    if (num_Proc == 0) {
+     done = 1;
+    }
 
     // unlock mutex
     pthread_mutex_unlock(&listMutex);
 
     calculate_square(val);
   }
+  return 0;
 }
 
 /*
