@@ -21,12 +21,12 @@
 #include <pthread.h>	//  First step, include pthread library
 
 // aggregate variables	//  This is the data the pthreads will change
-long sum = 0;
-long odd = 0;
-long min = INT_MAX;
-long max = INT_MIN;
-bool done = false;
-long num_Proc = 0;
+volatile long sum = 0;
+volatile long odd = 0;
+volatile long min = INT_MAX;
+volatile long max = INT_MIN;
+volatile bool done = false;
+volatile long num_Proc = 0;
 
 // Global List
 typedef struct node {
@@ -36,7 +36,7 @@ typedef struct node {
   struct node* next;
 } node_Link;
 
-node_Link* head = NULL;
+volatile node_Link* head = NULL;
 
 // Mutex
 pthread_mutex_t listMutex;
@@ -52,15 +52,16 @@ void calculate_square(long number);
 void calculate_square(long number)
 {
   // lock the mutex
-  pthread_mutex_lock(&listMutex);
+//  pthread_mutex_lock(&listMutex);
 
   // calculate the square
   long the_square = number * number;
-
+  
   // ok that was not so hard, but let's pretend it was
   // simulate how hard it is to square this number!
   sleep(number);
 
+  pthread_mutex_lock(&listMutex);
   // let's add this to our (global) sum
   sum += the_square;
 
@@ -92,13 +93,11 @@ void* startProc(void* args) {
   node_Link* next_Node = NULL;
   long val = 0;
 
+  printf("PTHREAD START \n");
+
   while (!done) {
     // Lock mutex for pthread processessing
     pthread_mutex_lock(&listMutex);
-
-    while (num_Proc == 0) {
-      pthread_cond_wait(&listCond, &listMutex);
-    }
 
     if (done) {
       pthread_mutex_unlock(&listMutex);
@@ -111,7 +110,7 @@ void* startProc(void* args) {
     head = next_Node;
     num_Proc--;
 
-//    printf("TEST VAL = %ld \n", val);
+    printf("TEST VAL = %ld \n", val);
 
     // unlock mutex
     pthread_mutex_unlock(&listMutex);
@@ -159,18 +158,20 @@ int main(int argc, char* argv[])
   // Read number of worker threads
   thread_count = strtol(argv[2], NULL, 10);
   // TEST
-//  printf("TEST THREADCOUNT = %ld \n", thread_count);
+  printf("TEST THREADCOUNT = %ld \n", thread_count);
   if (thread_count <= 0) {
     printf("Invalid thread count entered.");
     exit(EXIT_FAILURE);
   }
 
+/*
   // Initialize pthreads
   pthread_t workers[thread_count];
   long i;
   for (i = 0; i < thread_count; i++) {
     pthread_create(&workers[i], NULL, &startProc, NULL);	//  startProc = pthread function
   }
+*/
 
   // load numbers and add them to the queue
   FILE* fin = fopen(fn, "r");
@@ -189,7 +190,7 @@ int main(int argc, char* argv[])
 
       current->process = action;
       current->timeCost = num;
-//      printf("TEST TIMECOST = %ld \n", num);
+      printf("TEST TIMECOST = %ld \n", num);
       current->next = (node_Link*) malloc(sizeof(node_Link));
       current = current->next;
       num_Proc++;
@@ -198,7 +199,7 @@ int main(int argc, char* argv[])
 //      pthread_mutex_unlock(&listMutex);
 
       // Conditional variable signal to return mutex/predicate
-      pthread_cond_signal(&listCond);
+//      pthread_cond_signal(&listCond);
 
       // Unlock mutex
       pthread_mutex_unlock(&listMutex);
@@ -213,13 +214,26 @@ int main(int argc, char* argv[])
 
   fclose(fin);
 
-  // print results
-  printf("%ld %ld %ld %ld\n", sum, odd, min, max);
+  printf("PTHREAD INIT \n");
+
+  pthread_t workers[thread_count];
+  long i;
+  for (i = 0; i < thread_count; i++) {
+    printf("WORKER INIT \n");
+    pthread_create(&workers[i], NULL, &startProc, NULL);
+  }
+
+  printf("TEST AFTER INIT \n");
 
   // clean up and return
   for (i = 0; i < thread_count; i++) {
+    printf("WORKER JOIN \n");
     pthread_join(workers[i], NULL);
   }
+
+  // print results
+  printf("%ld %ld %ld %ld\n", sum, odd, min, max);
+
   pthread_mutex_destroy(&listMutex);
   pthread_cond_destroy(&listCond);
 
