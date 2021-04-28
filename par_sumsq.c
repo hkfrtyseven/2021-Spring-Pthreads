@@ -94,7 +94,7 @@ int startProc(void* args) {
   node_Link* next_Node = NULL;
   long val = 0;
 
-  printf("PTHREAD START \n");
+//  printf("PTHREAD START \n");
 
   while (1) {
     // Lock mutex for pthread processessing
@@ -110,7 +110,7 @@ int startProc(void* args) {
     head = next_Node;
     num_Proc--;
 
-    printf("TEST VAL = %ld \n", val);
+//    printf("TEST VAL = %ld \n", val);
 
     // TEST DONE
     if (num_Proc == 0) {
@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
   // Read number of worker threads
   thread_count = strtol(argv[2], NULL, 10);
   // TEST
-  printf("TEST THREADCOUNT = %ld \n", thread_count);
+//  printf("TEST THREADCOUNT = %ld \n", thread_count);
   if (thread_count <= 0) {
     printf("Invalid thread count entered.");
     exit(EXIT_FAILURE);
@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
 
       current->process = action;
       current->timeCost = num;
-      printf("TEST TIMECOST = %ld \n", num);
+//      printf("TEST TIMECOST = %ld \n", num);
       current->next = (node_Link*) malloc(sizeof(node_Link));
       current = current->next;
       num_Proc++;
@@ -220,20 +220,20 @@ int main(int argc, char* argv[])
 
   fclose(fin);
 
-  printf("PTHREAD INIT \n");
+//  printf("PTHREAD INIT \n");
 
   pthread_t workers[thread_count];
   long i;
   for (i = 0; i < thread_count; i++) {
-    printf("WORKER INIT \n");
+//    printf("WORKER INIT \n");
     pthread_create(&workers[i], NULL, &startProc, NULL);
   }
 
-  printf("TEST AFTER INIT \n");
+//  printf("TEST AFTER INIT \n");
 
   // clean up and return
   for (i = 0; i < thread_count; i++) {
-    printf("WORKER JOIN \n");
+//    printf("WORKER JOIN \n");
     pthread_join(workers[i], NULL);
   }
 
